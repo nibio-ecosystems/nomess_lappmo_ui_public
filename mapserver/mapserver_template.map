@@ -1,0 +1,76 @@
+MAP
+
+NAME ${project_name}
+
+EXTENT  ${map_extent_min_x} ${map_extent_max_x} ${map_extent_min_y} ${map_extent_max_y}
+UNITS METERS
+MAXSIZE ${map_max_size_pixels}
+
+CONFIG "MS_ERRORFILE" "${error_log}"
+DEBUG 5
+
+PROJECTION 
+  "init=epsg:${map_srid}"
+END
+
+# FONTSET /var/www/wms/fonts/fonts.list     
+
+WEB
+    MAXSCALE ${map_max_scale}
+    MINSCALE ${map_max_scale}
+    IMAGEPATH "/var/www/wms/tmp/"         # needed for mapserver 6
+    IMAGEURL "/tmp/"			  # needed for mapserver 6
+    METADATA
+	"wms_enable_request"  "*"
+        "wms_title"     "${project_description}"
+        "wms_onlineresource" "${wms_url}"
+        "wms_srs" "EPSG:${map_srid} EPSG:3857"
+        "wms_accesscontraints" "none"
+        "wms_addresstype" ""
+        "wms_address" ""
+        "wms_city" ""
+        "wms_stateorprovince" ""
+        "wms_postcode" ""
+        "wms_country" ""
+        "wms_contactelectronicmailaddress" ""
+        "wms_feature_info_mime_type" "text/html"
+    END #metadata
+END #web
+
+
+##################################### SYMBOLS ###################################################   
+
+
+   SYMBOL 
+     NAME "circle" 
+     TYPE ellipse 
+     FILLED TRUE
+     POINTS 
+       10 10 
+     END #points
+   END #symbol
+
+   SYMBOL 
+     NAME "circle2" 
+     TYPE ellipse 
+     FILLED TRUE
+     POINTS 
+       3 3
+     END #points
+   END #symbol
+
+   SYMBOL
+     NAME "fillsquare"
+     TYPE vector
+     FILLED TRUE
+     POINTS
+	0 1
+	0 0
+	1 0	
+	1 1
+	0 1
+     END # points
+   END # symbol
+
+# Layers go after here - don't forget to put 'END' after them.
+

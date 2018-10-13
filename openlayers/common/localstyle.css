@@ -1,0 +1,80 @@
+/* Full screen mode, no margins, in various devices/browsers */
+
+.map:-moz-full-screen {
+  height: 100%;
+}
+
+.map:-webkit-full-screen {
+  height: 100%;
+}
+
+.map:-ms-fullscreen {
+  height: 100%;
+}
+
+.map:fullscreen {
+  height: 100%;
+}
+
+html, body, .map {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.map {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* Position of the 'reset rotation' controller if user rotates map */
+
+.ol-rotate {
+  top: 3em;
+}
+
+/* Position of bing maps drop-down selector */
+.selectbing {
+    position: absolute;
+    top: 3px;
+    left: 100px;
+}
+
+/* Position of project maps drop-down selector */
+.selectproject {
+    position: absolute;
+    top: 3px;
+    left: 250px;
+}
+
+/* Position of the GPS tracking on/off toggle button */
+.geolocatebutton {
+    position: absolute;
+    top: 6px;
+    right: 20px;
+    border-radius: 4px;
+}
+
+/* Style & position of the little box where the getfeatureinfo value is printed */
+.valuelabel {
+position: absolute;
+top: 6px;
+right: 80px;
+width: 40px;
+height: 1.5em;
+display: block;
+background: #DDD;
+overflow: hidden;
+border-radius: 4px;
+}
+
+/* Style & position of the text inside the 'getfeatureinfo value' box */
+/* Slightly larger, bold text to draw the user's attention */
+#pointvalue {
+text-align: center;
+vertical-align: middle; 
+font-size=1.2em; 
+font-weight: bold;
+}

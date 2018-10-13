@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>${project_name}</title>
+
+<!-- force orientation into landscape on mobile web/app. --> 
+<script>
+screen.orientation.lock('landscape').catch(function() {
+    // Need this catch() to wrap the JS Promise so it doesn't fail on a desktop machine.
+});
+</script>
+
+<!-- scale mobile web/app into full screen mode, and disable 300ms press delay. do not change! --> 
+<meta name="viewport" content="height=device-height, width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes"> <!-- enables full screen ios web app capability -->
+<meta name="mobile-web-app-capable" content="yes"> <!-- another full screen mode compatibility flag, android --> 
+
+<!-- imports: not sure if still using any bootstrap calls - can perhaps be removed --> 
+<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<link rel="stylesheet" href="http://openlayers.org/en/v3.10.1/css/ol.css" type="text/css">
+<script src="http://openlayers.org/en/v3.10.1/build/ol.js"></script>
+<script src="common/reqwest.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+<!-- this is where you can alter the appearance of this project --> 
+<link rel="stylesheet" href="common/localstyle.css" type="text/css"> 
+
+<!-- favicons for mobile etc: I suggest realfavicongenerator.net, pretty good for this. GBB --> 
+<link rel="apple-touch-icon" sizes="57x57" href="favicon/apple-touch-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="60x60" href="favicon/apple-touch-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="favicon/apple-touch-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="favicon/apple-touch-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="favicon/apple-touch-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="favicon/apple-touch-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="favicon/apple-touch-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="favicon/apple-touch-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon-180x180.png">
+<link rel="icon" type="image/png" href="favicon/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="favicon/android-chrome-192x192.png" sizes="192x192">
+<link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="favicon/favicon-16x16.png" sizes="16x16">
+<link rel="manifest" href="favicon/manifest.json">
+<link rel="mask-icon" href="favicon/safari-pinned-tab.svg" color="#5bbad5">
+<link rel="shortcut icon" href="favicon/favicon.ico">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="favicon/mstile-144x144.png">
+<meta name="msapplication-config" content="favicon/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+
+<!-- mobile app name if added to home page --> 
+<meta name="apple-mobile-web-app-title" content="${project_name}">
+<meta name="application-name" content="${project_name}">
+
+</head>
+
+<!-- content starts here --> 
+
+<body>
+
+     <!-- add a map --> 
+     <div id="map" class="map"></div>
+
+     <!-- add the bing map dropdown selector --> 
+     <div class="selectbing">
+       <select id="bing-select">
+       <option value="Aerial">Aerial</option>
+       <option value="AerialWithLabels" selected>Aerial with labels</option>
+       <option value="Road">Road</option>
+       </select>  
+     </div>
+
+     <!-- add the selector for this project --> 
+     <div class="selectproject">
+       <select id="project-select">
+       ${project_maps_description_para}
+       <option value="blank">Blank</option>
+       </select>
+     </div>
+
+     <!-- add a creative commons GPS icon - thanks Google! --> 
+     <div class="geolocatebutton">
+       <button id="gps" onclick="toggleTracking()"><IMG SRC="common/android-gps-fixed-24-000000.png"></button>
+     </div>
+
+     <!-- add the little box for reporting the numerical value of the point --> 
+     <div class="valuelabel">
+       <p id="pointvalue"></p>
+     </div>
+
+     <!-- javascript section to load up maps and add interactivity to the page --> 
+
+<script>
+
+var bingmaps = [  'Road',  'Aerial',  'AerialWithLabels', ];
+
+var projectmaps = [ ${project_maps_para} ];
+
+var layers = []; // all the layers together from bing and the project
+var i, ii;       // temp loop variables
+var wmsSource;   // used to keep track of the current WMS for JSON point queries
+
+// Add the bing maps to openlayers
+for (i = 0, ii = bingmaps.length; i < ii; ++i) {
+  layers.push(new ol.layer.Tile({
+    visible: false,
+    preload: Infinity,
+    source: new ol.source.BingMaps({
+      key: 'Ak-dzM4wZjSqTlzveKz5u0d4IQ4bRzVI309GxmkgSVr1ewS6iPSrOvOKhA-CJlm3',
+      imagerySet: bingmaps[i]
+      // use maxZoom 19 to see stretched tiles instead of the BingMaps
+      // "no photos at this zoom level" tiles
+      // maxZoom: 19
+    })
+  }));
+}
+
+// Add the project WMS. Note: added as Image here, but accessed as vector source later.
+for (i = 0, ii = projectmaps.length; i < ii; ++i) {
+  layers.push(new ol.layer.Image({
+    visible: false,
+    preload: Infinity,
+    source: new ol.source.ImageWMS({
+                preload: Infinity,
+                url: '${wms_url}',
+                serverType:'mapserver',
+                params:{
+                        'LAYERS':projectmaps[i], 'TILED':true
+                }
+            })
+  }));
+}
+
+// Initial location + zoom level in Openlayers.
+var theview = new ol.View({
+  center: ${map_ol_center},
+  zoom: ${map_ol_zoom}
+});
+
+var map = new ol.Map({
+  // Create openlayers map.
+  // Improve user experience by loading tiles while dragging/zooming. 
+  layers: layers,
+  loadTilesWhileInteracting: true,
+  target: 'map',
+  view: theview
+});
+
+// Change the bing map (originally based on a bing maps openlayers example)
+var bing_select = document.getElementById('bing-select');
+function onChangeBing() {
+  var style = bing_select.value;
+  for (var i = 0, ii = bingmaps.length; i < ii; ++i) {
+    layers[i].setVisible(bingmaps[i] === style);  // turn a layer on where it matches (true), turn layers off where it doesn't. 
+  }
+}
+
+// Similar to the bing code, except because the layers are loaded after the bing layers
+// We need to offset everything by binglayers.length.
+// This is a little bit ugly. Sorry. But it works correctly - has been tested. GBB.
+var project_select = document.getElementById('project-select');
+function onChangeProject() {
+  var style = project_select.value;
+  for (var i = bingmaps.length, ii = layers.length; i < ii; ++i) {
+    layers[i].setVisible(projectmaps[i-bingmaps.length] === style);  // turn a layer on where it matches (true), turn layers off where it doesn't
+    // if the layer matches, set its source as wmssource for queries. rem can only query a source, not a layer
+    if (projectmaps[i-bingmaps.length] === style) {wmsSource=layers[i].getSource()};
+  }
+}
+
+// set up event listeners on the buttons and initialise the selected layers to the default button values
+bing_select.addEventListener('change', onChangeBing);
+onChangeBing();
+project_select.addEventListener('change', onChangeProject);
+onChangeProject();
+
+// Code for geolocation position marking - basically a blue and white blob drawn as an openlayers feature. 
+// Idea+style taken from a geolocation openlayers tracking example.
+var geolocation; 
+var positionFeature;
+// add a blue/white blob
+positionFeature = new ol.Feature();
+positionFeature.setStyle(new ol.style.Style({
+  image: new ol.style.Circle({
+    radius: 6,
+    fill: new ol.style.Fill({
+      color: '#3399CC'
+    }),
+    stroke: new ol.style.Stroke({
+      color: '#fff',
+      width: 2
+    })
+  })
+}));
+
+// add the geo-blob to the map
+var featuresOverlay = new ol.layer.Vector({
+  map: map,
+  source: new ol.source.Vector({
+    features: [positionFeature]
+  })
+});
+
+// Create a Geolocation object setup to track the position of the user's device.
+geolocation = new ol.Geolocation({
+  projection: theview.getProjection(),
+  tracking: false
+});
+
+// Upon a click, look up the wms and return any objects.
+// Amazingly this is not a feature of openlayers 3 so we have to use the reqwest library (or e.g. jquery)
+// Here, WMS-side JSON objects are currently sneaked into the mapserver HTML response (can be replaced by GeoJSON if needed)
+// If there is no WMS object, there's no 'value' property in the response and we shouldn't do anything else reset the UI.
+// This code is inspired by the openlayers getFeatureInfo example and by an example from Matt Walker (Astun Technology).
+
+map.on('singleclick', function(evt) {
+  document.getElementById('pointvalue').innerHTML = ' '; // reset UI
+  var viewResolution = /** @type {number} */ (map.getView().getResolution());
+  var url = wmsSource.getGetFeatureInfoUrl(
+      evt.coordinate, viewResolution, 'EPSG:3857',
+      {'INFO_FORMAT': 'text/html'});
+  if (url) {
+    reqwest({
+          url: url,
+          type: 'json',
+    }).then(function (data) {
+      if (data.hasOwnProperty('value')) { 
+        document.getElementById('pointvalue').innerHTML = data.value;
+      }
+    });
+  } 
+});
+
+// Function to enable geolocation to be turned off and on repeatedly as needed. 
+// Geolocation will center the view on the current GPS position and add a blob to the map.
+// The view and position blob will be updated as GPS reports new positions.
+// Works on desktop and mobile. 
+
+function toggleTracking() {       
+  if (geolocation.getTracking()) { 
+    // If geolocation already running, then disable tracking and updates to blob and view.
+    positionFeature.setGeometry(null);
+    geolocation.setTracking(false);
+    geolocation.on('change', function(evt) {});
+  } else { 
+    geolocation = new ol.Geolocation({
+      projection: theview.getProjection(),
+      tracking: true
+    });
+    // Update the view and blob position
+    geolocation.on('change', function() {
+      var coordinates = geolocation.getPosition();
+      positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
+      map.getView().setCenter(geolocation.getPosition());
+    });
+  } // end if
+} // end function toggleTracking
+
+</script></body></html><!-- note, no extra spaces here or carriage returns here, so we have full screen with no blank lines! --> 
+
+
+

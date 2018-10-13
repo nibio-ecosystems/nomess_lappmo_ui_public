@@ -1,0 +1,38 @@
+LAYER  
+    NAME         ${layer_name}
+    TYPE         POINT
+    STATUS ON
+
+    CONNECTIONTYPE postgis
+    CONNECTION "user=${database_username} dbname=${database_name} host=${database_server} password=${database_password} port=${database_port}"
+    DATA "geom from ${database_schema}.${layer_name} using unique gid using srid=${map_srid}"
+    
+    PROJECTION    
+        "init=epsg:${map_srid}"  ##required
+    END
+    TEMPLATE "${getfeature_template}" TOLERANCE 3 TOLERANCEUNITS PIXELS
+    
+    METADATA
+        "wms_title"   "${layer_name}"  
+        "ows_extent"  "${map_extent_min_x} ${map_extent_max_x} ${map_extent_min_y} ${map_extent_max_y}"
+    END  
+    
+    MAXSCALE ${map_max_scale}
+    MINSCALE ${map_min_scale}
+
+    SIZEUNITS METERS
+    
+    CLASS
+        NAME "All"
+        TEMPLATE "${getfeature_template}"  		# 
+            STYLE
+            SYMBOL 'circle'				# another option is 'circle'
+            COLOR [color]
+	    SIZE 60					# can go up to 200; but nicer with a traditional map in the background.
+	    MAXSIZE 5000
+	    MINSIZE 1
+            END
+    END 
+END
+
+
